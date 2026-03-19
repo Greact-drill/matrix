@@ -1,0 +1,21 @@
+services:
+  continuwuity:
+    image: forgejo.ellis.link/continuwuation/continuwuity:latest
+    container_name: continuwuity
+    restart: unless-stopped
+    # ports не открываем наружу — nginx проксирует внутри сети
+    volumes:
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+      - ./config.toml:/etc/conduwuit.toml:ro     # файл из репо
+      - continuwuity_data:/var/lib/conduwuit:rw   # named volume — данные вне репо
+    environment:
+      CONDUWUIT_CONFIG: '/etc/conduwuit.toml'
+    networks:
+      - proxy
+
+volumes:
+  continuwuity_data:
+
+networks:
+  proxy: external
+  
