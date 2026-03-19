@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
-import fastifyCookie from '@fastify/cookie';
 import { randomBytes } from 'crypto';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
@@ -35,7 +34,6 @@ function checkAuth(request, reply) {
 }
 
 const app = Fastify();
-await app.register(fastifyCookie);
 await app.register(fastifyStatic, { root: join(__dirname, 'public'), index: 'index.html' });
 
 app.get('/api/config', async () => ({ host }));
