@@ -17,5 +17,6 @@ volumes:
   continuwuity_data:
 
 networks:
-  proxy: external
-  
+  proxy:
+    external: true
+    
