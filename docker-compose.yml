@@ -6,7 +6,7 @@ services:
     # ports не открываем наружу — nginx проксирует внутри сети
     volumes:
       - /etc/resolv.conf:/etc/resolv.conf:ro
-      - ./config.toml:/etc/conduwuit.toml:ro     # файл из репо
+      - ./config.toml:/etc/conduwuit/conduwuit.toml:ro     # файл из репо
       - continuwuity_data:/var/lib/conduwuit:rw   # named volume — данные вне репо
     environment:
       CONDUWUIT_CONFIG: '/etc/conduwuit.toml'
@@ -19,4 +19,3 @@ volumes:
 networks:
   proxy:
     external: true
-    
