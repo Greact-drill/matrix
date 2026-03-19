@@ -1,0 +1,19 @@
+{
+  "name": "matrix-admin",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "nodemon server.mjs --watch server.mjs --watch public"
+  },
+  "devDependencies": {
+    "nodemon": "^3.x"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^10.x",
+    "@fastify/static": "^8.x",
+    "dotenv": "^16.6.1",
+    "fastify": "^5.x",
+    "qrcode": "^1.5.x"
+  }
+}

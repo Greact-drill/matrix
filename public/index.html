@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Registration Admin</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 480px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    input,
+    button {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .row input {
+      flex: 1;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .error {
+      color: #c00;
+    }
+
+    .success {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f0f8f0;
+      border-radius: 8px;
+    }
+
+    .success pre {
+      margin: 0.5rem 0;
+    }
+
+    #qr {
+      display: block;
+      margin: 1rem auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Matrix Registration Admin</h1>
+
+  <div id="qrContainer" class="hidden">
+    <img id="qr" src="/api/qr" alt="QR Element X" style="display:block;margin:0 auto 1rem">
+  </div>
+
+  <div id="loginScreen">
+    <form id="loginForm">
+      <label for="secret">Пароль доступа</label>
+      <input type="password" id="secret" name="secret" required autocomplete="current-password">
+      <p class="error hidden" id="loginError"></p>
+      <button type="submit">Войти</button>
+    </form>
+  </div>
+
+  <div id="mainScreen" class="hidden">
+    <form id="regForm">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required placeholder="nikita" pattern="[a-zA-Z0-9._=-]+">
+      <label for="password">Пароль</label>
+      <div class="row">
+        <input type="text" id="password" name="password" required readonly>
+        <button type="button" id="genBtn">🎲 Сгенерировать</button>
+      </div>
+      <p class="error hidden" id="regError"></p>
+      <button type="submit">Зарегистрировать</button>
+    </form>
+  </div>
+
+  <div id="successScreen" class="hidden">
+    <div class="success">
+      <p><strong>Успешно:</strong> <span id="mxid"></span></p>
+      <p>Пароль: <code id="passwordDisplay"></code> <button type="button" id="copyBtn">Копировать</button></p>
+    </div>
+    <button type="button" id="againBtn">Ещё один</button>
+  </div>
+
+  <script>
+    const loginScreen = document.getElementById('loginScreen');
+    const mainScreen = document.getElementById('mainScreen');
+    const successScreen = document.getElementById('successScreen');
+    const qrContainer = document.getElementById('qrContainer');
+
+    async function checkAuth() {
+      const r = await fetch('/api/generate-password', { credentials: 'include' });
+      if (r.ok) {
+        loginScreen.classList.add('hidden');
+        qrContainer.classList.remove('hidden');
+        mainScreen.classList.remove('hidden');
+        return true;
+      }
+      return false;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('loginError');
+      err.classList.add('hidden');
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: document.getElementById('secret').value }),
+        credentials: 'include',
+      });
+      if (r.ok) {
+        loginScreen.classList.add('hidden');
+        qrContainer.classList.remove('hidden');
+        mainScreen.classList.remove('hidden');
+      } else {
+        err.textContent = 'Неверный пароль';
+        err.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('genBtn').addEventListener('click', async () => {
+      const r = await fetch('/api/generate-password', { credentials: 'include' });
+      if (r.ok) {
+        const { password } = await r.json();
+        document.getElementById('password').value = password;
+      }
+    });
+
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('regError');
+      err.classList.add('hidden');
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
+      const data = await r.json();
+      if (r.ok) {
+        const cfg = await (await fetch('/api/config')).json();
+        const host = cfg.host || 'matrix.greact.online';
+        document.getElementById('mxid').textContent = data.user_id || `@${username}:${host}`;
+        document.getElementById('passwordDisplay').textContent = password;
+        document.getElementById('copyBtn').dataset.host = host;
+        document.getElementById('copyBtn').dataset.username = username;
+        document.getElementById('copyBtn').dataset.password = password;
+        mainScreen.classList.add('hidden');
+        successScreen.classList.remove('hidden');
+      } else {
+        err.textContent = data.error || data.errcode || 'Ошибка';
+        err.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const btn = document.getElementById('copyBtn');
+      const host = btn.dataset.host || 'matrix.greact.online';
+      const username = btn.dataset.username || '';
+      const password = btn.dataset.password || document.getElementById('passwordDisplay').textContent;
+      const text = `Matrix (наш командный мессенджер)
+
+Сервер: ${host}
+Логин: ${username}
+Пароль: ${password}
+
+Шаги:
+1) Скачай Element X (Matrix-клиент) на телефон/ПК https://element.io/download 
+2) На экране входа выбери «Изменить сервер» → ${host}
+3) Введи логин ${username} и пароль ${password}`;
+      navigator.clipboard.writeText(text);
+    });
+
+    document.getElementById('againBtn').addEventListener('click', () => {
+      successScreen.classList.add('hidden');
+      mainScreen.classList.remove('hidden');
+      document.getElementById('regForm').reset();
+      document.getElementById('regError').classList.add('hidden');
+    });
+
+    checkAuth();
+  </script>
+</body>
+
+</html>
