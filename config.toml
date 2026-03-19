@@ -1,18 +1,5 @@
 [global]
-server_name = "matrix.greact.online"
-address    = "0.0.0.0"
-port       = 6167
-
+server_name   = "matrix.greact.online"
+address       = "0.0.0.0"
+port          = 6167
 database_path = "/var/lib/conduwuit"
-
-ip_lookup_strategy = 1          # 1 = Ipv4Only (для большинства VPS без IPv6)
-
-# max_request_size = 20_000_000   # 20 МБ ?
-
-allow_registration = true      # пользователи могут регистрироваться сами
-
-trusted_servers = ["matrix.org"]
-
-[global.well_known]
-client = "https://matrix.greact.online"
-server = "matrix.greact.online:443"

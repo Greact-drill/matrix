@@ -1,13 +1,10 @@
 services:
   continuwuity:
-    image: forgejo.ellis.link/continuwuation/continuwuity:latest
+    build: .
     container_name: continuwuity
     restart: unless-stopped
     volumes:
-      - ./config.toml:/etc/conduwuit/conduwuit.toml:ro
-      - continuwuity_data:/var/lib/conduwuit:rw
-    networks:
-      - proxy
+      - continuwuity_data:/var/lib/conduwuit
 
 volumes:
   continuwuity_data:
