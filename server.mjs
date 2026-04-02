@@ -24,8 +24,15 @@ async function getQrBuffer() {
   return qrBuffer;
 }
 
+function getBearerToken(request) {
+  const auth = request.headers.authorization;
+  if (!auth || typeof auth !== 'string') return null;
+  const m = /^Bearer\s+(.+)$/i.exec(auth.trim());
+  return m ? m[1].trim() : null;
+}
+
 function checkAuth(request, reply) {
-  const sid = request.cookies?.session;
+  const sid = getBearerToken(request);
   if (!sid || !sessions.has(sid)) {
     reply.status(401).send({ errcode: 'M_UNAUTHORIZED', error: 'Login required' });
     return false;
@@ -45,8 +52,7 @@ app.post('/api/login', async (request, reply) => {
   }
   const sid = randomBytes(32).toString('hex');
   sessions.set(sid, true);
-  reply.setCookie('session', sid, { httpOnly: true, path: '/' });
-  return { ok: true };
+  return { ok: true, token: sid };
 });
 
 app.get('/api/generate-password', async (request, reply) => {

@@ -83,7 +83,7 @@
   <h1>Matrix Registration Admin</h1>
 
   <div id="qrContainer" class="hidden">
-    <img id="qr" src="/api/qr" alt="QR Element X" style="display:block;margin:0 auto 1rem">
+    <img id="qr" alt="QR Element X" style="display:block;margin:0 auto 1rem">
   </div>
 
   <div id="loginScreen">
@@ -118,19 +118,69 @@
   </div>
 
   <script>
+    const SESSION_KEY = 'matrix-admin-token';
     const loginScreen = document.getElementById('loginScreen');
     const mainScreen = document.getElementById('mainScreen');
     const successScreen = document.getElementById('successScreen');
     const qrContainer = document.getElementById('qrContainer');
+    const qrImg = document.getElementById('qr');
+    let qrObjectUrl = null;
+
+    function bearerHeaders(json = false) {
+      const h = {};
+      if (json) h['Content-Type'] = 'application/json';
+      const t = sessionStorage.getItem(SESSION_KEY);
+      if (t) h['Authorization'] = `Bearer ${t}`;
+      return h;
+    }
+
+    function revokeQrUrl() {
+      if (qrObjectUrl) {
+        URL.revokeObjectURL(qrObjectUrl);
+        qrObjectUrl = null;
+      }
+      qrImg.removeAttribute('src');
+    }
+
+    function handleUnauthorized() {
+      sessionStorage.removeItem(SESSION_KEY);
+      revokeQrUrl();
+      loginScreen.classList.remove('hidden');
+      qrContainer.classList.add('hidden');
+      mainScreen.classList.add('hidden');
+    }
+
+    function showAuthedUi() {
+      loginScreen.classList.add('hidden');
+      qrContainer.classList.remove('hidden');
+      mainScreen.classList.remove('hidden');
+    }
+
+    async function loadQr() {
+      const t = sessionStorage.getItem(SESSION_KEY);
+      if (!t) return;
+      revokeQrUrl();
+      const r = await fetch('/api/qr', { headers: bearerHeaders() });
+      if (r.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (!r.ok) return;
+      const blob = await r.blob();
+      qrObjectUrl = URL.createObjectURL(blob);
+      qrImg.src = qrObjectUrl;
+    }
 
     async function checkAuth() {
-      const r = await fetch('/api/generate-password', { credentials: 'include' });
+      const t = sessionStorage.getItem(SESSION_KEY);
+      if (!t) return false;
+      const r = await fetch('/api/generate-password', { headers: bearerHeaders() });
       if (r.ok) {
-        loginScreen.classList.add('hidden');
-        qrContainer.classList.remove('hidden');
-        mainScreen.classList.remove('hidden');
+        showAuthedUi();
+        await loadQr();
         return true;
       }
+      if (r.status === 401) handleUnauthorized();
       return false;
     }
 
@@ -142,12 +192,12 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secret: document.getElementById('secret').value }),
-        credentials: 'include',
       });
-      if (r.ok) {
-        loginScreen.classList.add('hidden');
-        qrContainer.classList.remove('hidden');
-        mainScreen.classList.remove('hidden');
+      const data = r.ok ? await r.json() : null;
+      if (r.ok && data && data.token) {
+        sessionStorage.setItem(SESSION_KEY, data.token);
+        showAuthedUi();
+        await loadQr();
       } else {
         err.textContent = 'Неверный пароль';
         err.classList.remove('hidden');
@@ -155,7 +205,11 @@
     });
 
     document.getElementById('genBtn').addEventListener('click', async () => {
-      const r = await fetch('/api/generate-password', { credentials: 'include' });
+      const r = await fetch('/api/generate-password', { headers: bearerHeaders() });
+      if (r.status === 401) {
+        handleUnauthorized();
+        return;
+      }
       if (r.ok) {
         const { password } = await r.json();
         document.getElementById('password').value = password;
@@ -170,11 +224,14 @@
       const password = document.getElementById('password').value;
       const r = await fetch('/api/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: bearerHeaders(true),
         body: JSON.stringify({ username, password }),
-        credentials: 'include',
       });
       const data = await r.json();
+      if (r.status === 401) {
+        handleUnauthorized();
+        return;
+      }
       if (r.ok) {
         const cfg = await (await fetch('/api/config')).json();
         const host = cfg.host || 'matrix.greact.online';
