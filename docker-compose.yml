@@ -3,3 +3,5 @@ services:
     build: .
     expose:
       - 3000
+    container_name: register-element-user
+    
