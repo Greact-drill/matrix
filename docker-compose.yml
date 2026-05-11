@@ -3,6 +3,12 @@ services:
     build: .
     expose:
       - 3000
+    environment:
+      - PORT=${PORT:-3000}
+      - MATRIX_SERVER=${MATRIX_SERVER}
+      - MATRIX_SPACE_ID=${MATRIX_SPACE_ID}
+      - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+      - ADMIN_SECRET=${ADMIN_SECRET}
     container_name: register-element-user
     networks:
       - proxy
