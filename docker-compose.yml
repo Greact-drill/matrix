@@ -4,4 +4,10 @@ services:
     expose:
       - 3000
     container_name: register-element-user
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
     
